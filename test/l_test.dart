@@ -345,6 +345,28 @@ void environmentSpecific() {
       'browser': Skip('Not supported on Browser'),
     },
   );
+
+  test(
+    'MessageFormattingPipelineVM includes stack trace',
+    () {
+      final pipeline = log_delegate_io.MessageFormattingPipelineVM();
+      final stackTrace = StackTrace.fromString('CustomStackTrace');
+      final message = LogMessage.create(
+        'Message with StackTrace',
+        const LogLevel.error(),
+        stackTrace: stackTrace,
+      );
+
+      final formatted = pipeline.format(message);
+
+      expect(formatted, isNotNull);
+      expect(formatted, contains('Message with StackTrace'));
+      expect(formatted, contains('CustomStackTrace'));
+    },
+    onPlatform: {
+      'browser': Skip('Not supported on Browser'),
+    },
+  );
 }
 
 void jsonSerialization() {
