@@ -19,6 +19,7 @@ void main() {
   group('l.environmentSpecific', environmentSpecific);
   group('l.jsonSerialization', jsonSerialization);
   group('l.output', logOutput);
+  group('l.tags', tags);
 }
 
 void mainFunctional() {
@@ -477,5 +478,61 @@ void logOutput() {
         output: LogOutput.ignore,
       ),
     );
+  });
+}
+
+void tags() {
+  test('capture merges tags with inline logger', () async {
+    final messages = <LogMessage>[];
+    final sub = l.listen(messages.add);
+    addTearDown(sub.cancel);
+
+    l.capture(
+      () {
+        l['inline'].e('scoped tagged message');
+        l.e('scoped message without inline tag');
+      },
+      const LogOptions(
+        tags: {'scope'},
+      ),
+    );
+
+    await Future<void>.delayed(Duration.zero);
+
+    final tagList = messages.map((event) => event.tags.toList()).toList();
+    expect(
+      tagList,
+      equals(
+        [
+          ['scope', 'inline'],
+          ['scope'],
+        ],
+      ),
+    );
+  });
+
+  test('tagged capture intercepts print with tags', () async {
+    final messages = <LogMessage>[];
+    final sub = l.listen(messages.add);
+    addTearDown(sub.cancel);
+
+    l['inline'].capture(
+      () {
+        print('scoped print');
+        l.v('scoped log');
+      },
+      LogOptions(
+        outputInRelease: true,
+        handlePrint: true,
+        printColors: false,
+      ),
+    );
+
+    await Future<void>.delayed(Duration.zero);
+
+    expect(messages, hasLength(2));
+    expect(messages.first.message, 'scoped print');
+    expect(messages.first.tags.toList(), equals(['inline']));
+    expect(messages.last.tags.toList(), equals(['inline']));
   });
 }

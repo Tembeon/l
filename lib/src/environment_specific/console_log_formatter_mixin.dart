@@ -11,11 +11,17 @@ extension on StringBuffer {
       ..write(value);
   }
 
-  String completeMessage(Object message) => (this
-        ..write(']')
-        ..write(' ')
-        ..write(message))
-      .toString();
+  String completeMessage(Object message, Set<String> tags) {
+    write(']');
+    if (tags.isNotEmpty) {
+      write(' [');
+      writeAll(tags, ',');
+      write(']');
+    }
+    write(' ');
+    write(message);
+    return toString();
+  }
 }
 
 @internal
@@ -25,30 +31,32 @@ base mixin ConsoleLogFormatterMixin on MessageFormattingPipeline {
     final prefix = event.level.prefix;
     final printColors = getCurrentLogOptions()?.printColors ?? true;
     final message = event.message;
+    final tags = event.tags;
     final formattedMessage = printColors
         ? event.level.when<String>(
-            shout: () => _shout(message, prefix),
-            v: () => _v(message, prefix),
-            error: () => _error(message, prefix),
-            vv: () => _vv(message, prefix),
-            warning: () => _warning(message, prefix),
-            vvv: () => _vvv(message, prefix),
-            info: () => _info(message, prefix),
-            vvvv: () => _vvvv(message, prefix),
-            debug: () => _debug(message, prefix),
-            vvvvv: () => _vvvvv(message, prefix),
-            vvvvvv: () => _vvvvvv(message, prefix),
+            shout: () => _shout(message, prefix, tags),
+            v: () => _v(message, prefix, tags),
+            error: () => _error(message, prefix, tags),
+            vv: () => _vv(message, prefix, tags),
+            warning: () => _warning(message, prefix, tags),
+            vvv: () => _vvv(message, prefix, tags),
+            info: () => _info(message, prefix, tags),
+            vvvv: () => _vvvv(message, prefix, tags),
+            debug: () => _debug(message, prefix, tags),
+            vvvvv: () => _vvvvv(message, prefix, tags),
+            vvvvvv: () => _vvvvvv(message, prefix, tags),
           )
-        : _formatPlain(message, prefix);
+        : _formatPlain(message, prefix, tags);
     return super.format(event.copyWith(message: formattedMessage));
   }
 
-  static String _formatPlain(Object message, String prefix) =>
-      (StringBuffer('[')..write(prefix)).completeMessage(message);
+  static String _formatPlain(Object message, String prefix, Set<String> tags) =>
+      (StringBuffer('[')..write(prefix)).completeMessage(message, tags);
 
   static String _formatStyled(
     Object message,
     String prefix, {
+    required Set<String> tags,
     String? font,
     String? foreground,
     String? background,
@@ -61,59 +69,74 @@ base mixin ConsoleLogFormatterMixin on MessageFormattingPipeline {
       ..write(prefix)
       ..writeEsc(_reset);
 
-    return buffer.completeMessage(message);
+    return buffer.completeMessage(message, tags);
   }
 
-  String _shout(Object message, String prefix) => _formatStyled(
+  String _shout(Object message, String prefix, Set<String> tags) =>
+      _formatStyled(
         message,
         prefix,
+        tags: tags,
         font: _ConsoleFont.underline.value,
         foreground: _ConsoleColor.black.foregroundValue,
         background: _ConsoleColor.white.backgroundValue,
       );
 
-  String _v(Object message, String prefix) => _formatStyled(
+  String _v(Object message, String prefix, Set<String> tags) => _formatStyled(
         message,
         prefix,
+        tags: tags,
         font: _ConsoleFont.bold.value,
         foreground: _ConsoleColor.magenta.foregroundValue,
       );
 
-  String _error(Object message, String prefix) => _formatStyled(
+  String _error(Object message, String prefix, Set<String> tags) =>
+      _formatStyled(
         message,
         prefix,
+        tags: tags,
         font: _ConsoleFont.bold.value,
         foreground: _ConsoleColor.red.foregroundValue,
       );
 
-  String _vv(Object message, String prefix) => _formatPlain(message, prefix);
+  String _vv(Object message, String prefix, Set<String> tags) =>
+      _formatPlain(message, prefix, tags);
 
-  String _warning(Object message, String prefix) => _formatStyled(
+  String _warning(Object message, String prefix, Set<String> tags) =>
+      _formatStyled(
         message,
         prefix,
+        tags: tags,
         foreground: _ConsoleColor.yellow.foregroundValue,
       );
 
-  String _vvv(Object message, String prefix) => _formatPlain(message, prefix);
+  String _vvv(Object message, String prefix, Set<String> tags) =>
+      _formatPlain(message, prefix, tags);
 
-  String _info(Object message, String prefix) => _formatStyled(
+  String _info(Object message, String prefix, Set<String> tags) =>
+      _formatStyled(
         message,
         prefix,
+        tags: tags,
         foreground: _ConsoleColor.green.foregroundValue,
       );
 
-  String _vvvv(Object message, String prefix) => _formatPlain(message, prefix);
+  String _vvvv(Object message, String prefix, Set<String> tags) =>
+      _formatPlain(message, prefix, tags);
 
-  String _debug(Object message, String prefix) => _formatStyled(
+  String _debug(Object message, String prefix, Set<String> tags) =>
+      _formatStyled(
         message,
         prefix,
+        tags: tags,
         foreground: _ConsoleColor.cyan.foregroundValue,
       );
 
-  String _vvvvv(Object message, String prefix) => _formatPlain(message, prefix);
+  String _vvvvv(Object message, String prefix, Set<String> tags) =>
+      _formatPlain(message, prefix, tags);
 
-  String _vvvvvv(Object message, String prefix) =>
-      _formatPlain(message, prefix);
+  String _vvvvvv(Object message, String prefix, Set<String> tags) =>
+      _formatPlain(message, prefix, tags);
 }
 
 /// Ansi escape

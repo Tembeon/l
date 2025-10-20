@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart';
 
 import 'inner_logger.dart';
+import 'inner_zoned_mixin.dart';
 import 'log_level.dart';
 import 'log_message.dart';
 import 'logger.dart';
@@ -18,6 +19,7 @@ base mixin InnerLoggerMethodsMixin on InnerLogger {
           message,
           const LogLevel.shout(),
           context: context,
+          tags: combineLogTags(),
         ),
       );
 
@@ -31,6 +33,7 @@ base mixin InnerLoggerMethodsMixin on InnerLogger {
           message,
           const LogLevel.v(),
           context: context,
+          tags: combineLogTags(),
         ),
       );
 
@@ -46,6 +49,7 @@ base mixin InnerLoggerMethodsMixin on InnerLogger {
           const LogLevel.error(),
           stackTrace: stackTrace,
           context: context,
+          tags: combineLogTags(),
         ),
       );
 
@@ -59,6 +63,7 @@ base mixin InnerLoggerMethodsMixin on InnerLogger {
           message,
           const LogLevel.vv(),
           context: context,
+          tags: combineLogTags(),
         ),
       );
 
@@ -74,6 +79,7 @@ base mixin InnerLoggerMethodsMixin on InnerLogger {
           const LogLevel.warning(),
           stackTrace: stackTrace,
           context: context,
+          tags: combineLogTags(),
         ),
       );
 
@@ -87,6 +93,7 @@ base mixin InnerLoggerMethodsMixin on InnerLogger {
           message,
           const LogLevel.vvv(),
           context: context,
+          tags: combineLogTags(),
         ),
       );
 
@@ -100,6 +107,7 @@ base mixin InnerLoggerMethodsMixin on InnerLogger {
           message,
           const LogLevel.info(),
           context: context,
+          tags: combineLogTags(),
         ),
       );
 
@@ -113,6 +121,7 @@ base mixin InnerLoggerMethodsMixin on InnerLogger {
           message,
           const LogLevel.vvvv(),
           context: context,
+          tags: combineLogTags(),
         ),
       );
 
@@ -126,6 +135,7 @@ base mixin InnerLoggerMethodsMixin on InnerLogger {
           message,
           const LogLevel.debug(),
           context: context,
+          tags: combineLogTags(),
         ),
       );
 
@@ -139,6 +149,7 @@ base mixin InnerLoggerMethodsMixin on InnerLogger {
           message,
           const LogLevel.vvvvv(),
           context: context,
+          tags: combineLogTags(),
         ),
       );
 
@@ -152,6 +163,7 @@ base mixin InnerLoggerMethodsMixin on InnerLogger {
           message,
           const LogLevel.vvvvvv(),
           context: context,
+          tags: combineLogTags(),
         ),
       );
 }

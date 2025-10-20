@@ -35,6 +35,7 @@ abstract base class LogOptions {
     LogOutput output,
     MessageFormatting? messageFormatting,
     OverrideLoggerOutput? overrideOutput,
+    Set<String> tags,
   }) = _LogOptionsImpl;
 
   const LogOptions._();
@@ -68,6 +69,9 @@ abstract base class LogOptions {
   /// or your own output logic.
   OverrideLoggerOutput? get overrideOutput;
 
+  /// Tags applied to all log messages within this capture zone.
+  Set<String> get tags;
+
   /// Default Logger options
   static const LogOptions defaultOptions = _LogOptionsImpl();
 }
@@ -80,6 +84,7 @@ final class _LogOptionsImpl extends LogOptions {
     this.output = LogOutput.platform,
     this.messageFormatting,
     this.overrideOutput,
+    this.tags = const <String>{},
   }) : super._();
 
   @override
@@ -99,4 +104,7 @@ final class _LogOptionsImpl extends LogOptions {
 
   @override
   final OverrideLoggerOutput? overrideOutput;
+
+  @override
+  final Set<String> tags;
 }

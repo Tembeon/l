@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:meta/meta.dart';
 
 import 'log_level.dart';
@@ -14,9 +16,13 @@ sealed class LogMessage implements Comparable<LogMessage> {
     required this.level,
     required this.timestamp,
     LogMessageContext? context,
-  }) : context = context != null
+    Set<String>? tags,
+  })  : context = context != null
             ? Map<String, Object?>.unmodifiable(context)
-            : const <String, Object?>{};
+            : const <String, Object?>{},
+        tags = tags != null && tags.isNotEmpty
+            ? Set<String>.unmodifiable(LinkedHashSet<String>.of(tags))
+            : const <String>{};
 
   /// Normal message
   ///
@@ -26,6 +32,7 @@ sealed class LogMessage implements Comparable<LogMessage> {
     required LogLevel level,
     required DateTime timestamp,
     LogMessageContext? context,
+    Set<String>? tags,
   }) = LogMessageVerbose;
 
   /// Error message
@@ -37,6 +44,7 @@ sealed class LogMessage implements Comparable<LogMessage> {
     required DateTime timestamp,
     StackTrace? stackTrace,
     LogMessageContext? context,
+    Set<String>? tags,
   }) = LogMessageError;
 
   /// Create new loggin message
@@ -47,6 +55,7 @@ sealed class LogMessage implements Comparable<LogMessage> {
     LogLevel level, {
     StackTrace? stackTrace,
     LogMessageContext? context,
+    Set<String>? tags,
   }) =>
       stackTrace == null
           ? LogMessageVerbose(
@@ -54,6 +63,7 @@ sealed class LogMessage implements Comparable<LogMessage> {
               level: level,
               timestamp: DateTime.now(),
               context: context,
+              tags: tags,
             )
           : LogMessageError(
               message: message,
@@ -61,6 +71,7 @@ sealed class LogMessage implements Comparable<LogMessage> {
               timestamp: DateTime.now(),
               stackTrace: stackTrace,
               context: context,
+              tags: tags,
             );
 
   /// Restore [LogMessage] from Map&lt;String, Object?&gt;
@@ -81,17 +92,24 @@ sealed class LogMessage implements Comparable<LogMessage> {
       StackTrace st => st,
       _ => null,
     };
+    final tags = switch (json['tags']) {
+      Iterable<Object?> tags =>
+        LinkedHashSet<String>.of(tags.whereType<String>()),
+      _ => null,
+    };
     return stackTrace == null && json['type'] != 'error'
         ? LogMessageVerbose(
             message: message,
             level: level,
             timestamp: timestamp,
+            tags: tags,
           )
         : LogMessageError(
             message: message,
             level: level,
             timestamp: timestamp,
             stackTrace: stackTrace,
+            tags: tags,
           );
   }
 
@@ -111,12 +129,17 @@ sealed class LogMessage implements Comparable<LogMessage> {
   @nonVirtual
   final LogMessageContext context;
 
+  /// Tags associated with the message
+  @nonVirtual
+  final Set<String> tags;
+
   /// Make a copy of the message
   LogMessage copyWith({
     Object? message,
     LogLevel? level,
     DateTime? timestamp,
     StackTrace? stackTrace,
+    Set<String>? tags,
   }) =>
       switch (this) {
         LogMessageVerbose msg when stackTrace != null => LogMessageError(
@@ -124,17 +147,20 @@ sealed class LogMessage implements Comparable<LogMessage> {
             level: level ?? msg.level,
             timestamp: timestamp ?? msg.timestamp,
             stackTrace: stackTrace,
+            tags: tags ?? msg.tags,
           ),
         LogMessageVerbose msg => LogMessageVerbose(
             message: message ?? msg.message,
             level: level ?? msg.level,
             timestamp: timestamp ?? msg.timestamp,
+            tags: tags ?? msg.tags,
           ),
         LogMessageError msg => LogMessageError(
             message: message ?? msg.message,
             level: level ?? msg.level,
             timestamp: timestamp ?? msg.timestamp,
             stackTrace: stackTrace ?? msg.stackTrace,
+            tags: tags ?? msg.tags,
           ),
       };
 
@@ -171,6 +197,7 @@ final class LogMessageVerbose extends LogMessage {
     required super.level,
     required super.timestamp,
     super.context,
+    super.tags,
   });
 
   @override
@@ -179,6 +206,7 @@ final class LogMessageVerbose extends LogMessage {
         'message': message.toString(),
         'level': level.prefix,
         'timestamp': timestamp.microsecondsSinceEpoch,
+        if (tags.isNotEmpty) 'tags': List<String>.unmodifiable(tags),
         if (context) 'context': this.context,
       };
 }
@@ -194,6 +222,7 @@ final class LogMessageError extends LogMessage {
     required super.timestamp,
     StackTrace? stackTrace,
     super.context,
+    super.tags,
   }) : stackTrace = stackTrace ?? StackTrace.empty;
 
   /// Stack trace
@@ -206,6 +235,7 @@ final class LogMessageError extends LogMessage {
         'level': level.prefix,
         'timestamp': timestamp.microsecondsSinceEpoch,
         'stacktrace': stackTrace.toString(),
+        if (tags.isNotEmpty) 'tags': List<String>.unmodifiable(tags),
         if (context) 'context': this.context,
       };
 }

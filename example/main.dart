@@ -29,17 +29,37 @@ void main([List<String>? args]) => l.capture<void>(
             ..v6('Regular 6');
           print('Hello from original print!');
           l.v('Running');
+
+          l['Tag'].v('Regular tagged');
+          l.capture(
+            () async {
+              print('Original print');
+              l.v('Scoped verbose');
+              l['Inner'].vv('Inner scoped verbose 2');
+              l.vv('usual 2');
+            },
+            const LogOptions(
+              tags: {'Scoped'},
+              handlePrint: false,
+              messageFormatting: _customFormatter,
+              overrideOutput: _customPrinter,
+            ),
+          );
+
           throw Exception('Exception');
         },
         l.e, // Log uncaught errors received by the zone.
       ),
       // Logger options passed to the underlying logger zone.
       const LogOptions(
-        handlePrint: true, // Whether to handle `print()` calls.
-        messageFormatting: _customFormatter,
-        overrideOutput: overrideOutput ? _customPrinter : null,
-        outputInRelease: true, // Whether to output in release mode.
-        printColors: true, // Whether to print colors in the console.
+        handlePrint: true,
+        // Whether to handle `print()` calls.
+        // messageFormatting: _customFormatter,
+        // overrideOutput: overrideOutput ? _customPrinter : null,
+        outputInRelease: true,
+        // Whether to output in release mode.
+        printColors: true,
+        // Whether to print colors in the console.
         output: LogOutput.platform, // Whether to use `print()` for output.
       ),
     );
@@ -56,4 +76,5 @@ String? _customPrinter(LogMessage event) => jsonEncode(<String, Object?>{
       'timestamp': event.timestamp.toUtc().toIso8601String(),
       'level': event.level.toString(),
       'message': event.message.toString(),
+      'tags': event.tags.toString(),
     });

@@ -108,9 +108,10 @@ abstract interface class L implements Stream<LogMessage> {
   /// ```dart
   ///   l.capture(
   ///     someFunction,
-  ///     const LogOptions(
+  ///     logOptions: const LogOptions(
   ///       handlePrint: false,
   ///       messageFormatting: _messageFormatting,
+  ///       tags: {'ui', 'feature-x'},
   ///     ),
   ///   );
   /// ```
@@ -123,4 +124,7 @@ abstract interface class L implements Stream<LogMessage> {
 
   /// Add Debug [message] with verbose level 4
   void operator <<(Object debug);
+
+  /// Return a logger view that appends [tag] to every emitted message.
+  L operator [](String tag);
 }
