@@ -4,57 +4,37 @@ import 'dart:async';
 
 import 'l.dart' show L, l;
 import 'src/inner_zoned_mixin.dart'
-    show buildZoneValues, getCurrentLogOptions, pushInlineTag;
+    show buildZoneValues, combineLogTags, getCurrentLogOptions;
 import 'src/log_message.dart' show LogMessage;
 import 'src/log_options.dart';
 import 'src/logger.dart' show LogMessageContext;
 
 final Expando<Zone> _boundZone = Expando<Zone>('l.boundZone');
-final Expando<String> _boundTag = Expando<String>('l.boundTag');
 
-LogOptions? _resolveOptions(Set<String> tags) {
-  final current = getCurrentLogOptions();
-  final merged = <String>{...?current?.tags, ...tags};
-  if (current == null) {
-    if (merged.isEmpty) return null;
-    return LogOptions(tags: Set<String>.unmodifiable(merged));
-  }
-  return LogOptions(
-    handlePrint: current.handlePrint,
-    printColors: current.printColors,
-    outputInRelease: current.outputInRelease,
-    output: current.output,
-    messageFormatting: current.messageFormatting,
-    overrideOutput: current.overrideOutput,
-    tags: Set<String>.unmodifiable(merged),
-  );
-}
-
-Zone _forkBoundZone(Set<String> tags) {
-  final options = _resolveOptions(tags);
-  return Zone.current.fork(zoneValues: buildZoneValues(options));
-}
-
-/// Bind [obj] to the current logging zone with optional [tags] and
-/// a custom inline [tag].
+/// Bind [obj] to the current logging zone with a custom inline [tag].
 ///
 /// The object retains a weak reference to the derived zone, so GC is not
 /// prevented.
 T bindLog<T extends Object>(
   T obj, {
-  Set<String> tags = const <String>{},
   String? tag,
 }) {
-  final zone = _forkBoundZone(tags);
+  final currentOptions = getCurrentLogOptions();
+  final allTags = combineLogTags({
+    if (tag != null) tag,
+    if (tag == null) obj.runtimeType.toString(),
+  });
+  final zoneValues = buildZoneValues(currentOptions, allTags);
+  final zone = Zone.current.fork(
+    zoneValues: zoneValues.isEmpty ? null : zoneValues,
+  );
   _boundZone[obj] = zone;
-  if (tag != null) _boundTag[obj] = tag;
   return obj;
 }
 
 /// Remove previously attached logging metadata from [obj].
 void unbindLog(Object obj) {
   _boundZone[obj] = null;
-  _boundTag[obj] = null;
 }
 
 class _ZLogger extends StreamView<LogMessage> implements L {
@@ -63,12 +43,11 @@ class _ZLogger extends StreamView<LogMessage> implements L {
   final Object _owner;
 
   Zone? get _zone => _boundZone[_owner];
-  String get _tag => _boundTag[_owner] ?? _owner.runtimeType.toString();
 
   T _run<T>(T Function(L logger) operation) {
     final zone = _zone;
-    if (zone == null) return operation(l[_tag]);
-    return zone.run(() => operation(l[_tag]));
+    if (zone == null) return operation(l);
+    return zone.run(() => operation(l));
   }
 
   @override
@@ -159,17 +138,6 @@ class _ZLogger extends StreamView<LogMessage> implements L {
 
   @override
   void operator <<(Object debug) => _run((logger) => logger << debug);
-
-  @override
-  L operator [](String tag) {
-    final zone = _zone;
-    if (zone == null) {
-      pushInlineTag(tag);
-    } else {
-      zone.run(() => pushInlineTag(tag));
-    }
-    return this;
-  }
 }
 
 /// Extension that exposes the zone-aware logger bound to an object.

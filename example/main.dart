@@ -4,7 +4,6 @@
 library;
 
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:l/l.dart';
 import 'package:l/log_binding.dart';
@@ -32,34 +31,31 @@ void main([List<String>? args]) => runZonedGuarded(
               ..vv('Regular 2')
               ..v6('Regular 6');
             print('Hello from original print!');
-            l.v('Running');
+            l
+              ..v('Running')
+              ..capture(
+                () async {
+                  print('Original print');
+                  l
+                    ..v('Scoped verbose')
+                    ..vv('usual 2');
 
-            l['Tag'].v('Regular tagged');
-            l.capture(
-              () async {
-                print('Original print');
-                l.v('Scoped verbose');
-                l['Inner'].vv('Inner scoped verbose 2');
-                l.vv('usual 2');
+                  bindLog(
+                    const SomeClass(),
+                    tag: 'SomeClassInstance',
+                  )
+                    ..foo()
+                    ..bar();
 
-                final result = bindLog(
-                  const SomeClass(),
-                  tag: 'SomeClassInstance',
-                );
-
-                result
-                  ..foo()
-                  ..bar();
-
-                SomeClass()..foo()..bar();
-              },
-              const LogOptions(
-                tags: {'Scoped'},
-                handlePrint: false,
-                // messageFormatting: _customFormatter,
-                // overrideOutput: _customPrinter,
-              ),
-            );
+                  bindLog(const SomeClass(), tag: 'Test').bar();
+                  const SomeClass().bar();
+                },
+                const LogOptions(
+                  handlePrint: false,
+                  // messageFormatting: _customFormatter,
+                  // overrideOutput: _customPrinter,
+                ),
+              );
 
             throw Exception('Exception');
           },
@@ -68,7 +64,6 @@ void main([List<String>? args]) => runZonedGuarded(
         // Logger options passed to the underlying logger zone.
         const LogOptions(
           handlePrint: true,
-          tags: {'root'},
           // Whether to handle `print()` calls.
           // messageFormatting: _customFormatter,
           // overrideOutput: overrideOutput ? _customPrinter : null,
@@ -81,18 +76,3 @@ void main([List<String>? args]) => runZonedGuarded(
       ),
       (error, stack) {},
     );
-
-/// Format messages and truncate them to 25 characters long.
-Object _customFormatter(LogMessage event) => switch (event.message.toString()) {
-      final String msg when msg.length > 25 =>
-        '${msg.substring(0, 25 - 4)} ...',
-      final String msg => msg,
-    };
-
-/// Also, we can output messages to a file, or to a database, or to a server.
-String? _customPrinter(LogMessage event) => jsonEncode(<String, Object?>{
-      'timestamp': event.timestamp.toUtc().toIso8601String(),
-      'level': event.level.toString(),
-      'message': event.message.toString(),
-      'tags': event.tags.toString(),
-    });

@@ -20,7 +20,6 @@ void main() {
   group('l.environmentSpecific', environmentSpecific);
   group('l.jsonSerialization', jsonSerialization);
   group('l.output', logOutput);
-  group('l.tags', tags);
   group('l.binding', binding);
 }
 
@@ -505,76 +504,19 @@ void logOutput() {
   });
 }
 
-void tags() {
-  test('capture merges tags with inline logger', () async {
-    final messages = <LogMessage>[];
-    final sub = l.listen(messages.add);
-    addTearDown(sub.cancel);
-
-    l.capture(
-      () {
-        l['inline'].e('scoped tagged message');
-        l.e('scoped message without inline tag');
-      },
-      const LogOptions(
-        tags: {'scope'},
-      ),
-    );
-
-    await Future<void>.delayed(Duration.zero);
-
-    final tagList = messages.map((event) => event.tags.toList()).toList();
-    expect(
-      tagList,
-      equals(
-        [
-          ['scope', 'inline'],
-          ['scope'],
-        ],
-      ),
-    );
-  });
-
-  test('tagged capture intercepts print with tags', () async {
-    final messages = <LogMessage>[];
-    final sub = l.listen(messages.add);
-    addTearDown(sub.cancel);
-
-    l['inline'].capture(
-      () {
-        print('scoped print');
-        l.v('scoped log');
-      },
-      LogOptions(
-        outputInRelease: true,
-        handlePrint: true,
-        printColors: false,
-      ),
-    );
-
-    await Future<void>.delayed(Duration.zero);
-
-    expect(messages, hasLength(2));
-    expect(messages.first.message, 'scoped print');
-    expect(messages.first.tags.toList(), equals(['inline']));
-    expect(messages.last.tags.toList(), equals(['inline']));
-  });
-}
-
 void binding() {
   test('bindLog attaches tags to bound object logs', () async {
     final messages = <LogMessage>[];
     final sub = l.listen(messages.add);
     addTearDown(sub.cancel);
 
-    final target =
-        bindLog(_BoundSample(), tags: {'Bound'}, tag: 'SampleInstance');
-    target.zl.v('message');
+    final target = bindLog(_BoundSample(), tag: 'SampleInstance');
+    LogBoundX(target).zl.v('message');
 
     await Future<void>.delayed(Duration.zero);
 
     expect(messages, hasLength(1));
-    expect(messages.first.tags.toList(), equals(['Bound', 'SampleInstance']));
+    expect(messages.first.tags.toList(), equals(['SampleInstance']));
   });
 
   test('bindLog merges with capture tags', () async {
@@ -582,22 +524,15 @@ void binding() {
     final sub = l.listen(messages.add);
     addTearDown(sub.cancel);
 
-    l.capture(
-      () {
-        final target =
-            bindLog(_BoundSample(), tags: {'Bound'}, tag: 'SampleInstance');
-        target.zl.e('error');
-      },
-      const LogOptions(tags: {'Scoped'}),
-    );
+    l.capture(() {
+      final target = bindLog(_BoundSample(), tag: 'SampleInstance');
+      LogBoundX(target).zl.e('error');
+    });
 
     await Future<void>.delayed(Duration.zero);
 
     expect(messages, hasLength(1));
-    expect(
-      messages.first.tags.toList(),
-      equals(['Scoped', 'Bound', 'SampleInstance']),
-    );
+    expect(messages.first.tags.toList(), equals(['SampleInstance']));
   });
 
   test('unbindLog detaches bound zone', () async {
@@ -605,22 +540,21 @@ void binding() {
     final sub = l.listen(messages.add);
     addTearDown(sub.cancel);
 
-    final target =
-        bindLog(_BoundSample(), tags: {'Bound'}, tag: 'SampleInstance');
-    target.zl.d('first');
+    final target = bindLog(_BoundSample(), tag: 'SampleInstance');
+    LogBoundX(target).zl.d('first');
     unbindLog(target);
-    target.zl.d('second');
+    LogBoundX(target).zl.d('second');
 
     await Future<void>.delayed(Duration.zero);
 
     expect(messages, hasLength(2));
-    expect(messages.first.tags.toList(), equals(['Bound', 'SampleInstance']));
-    expect(messages.last.tags.toList(), equals(['_BoundSample']));
+    expect(messages.first.tags.toList(), equals(['SampleInstance']));
+    expect(messages.last.tags, isEmpty);
   });
 }
 
 final class _BoundSample {
-  void v(String message) => zl.v(message);
-  void d(String message) => zl.d(message);
-  void e(String message) => zl.e(message);
+  void v(String message) => LogBoundX(this).zl.v(message);
+  void d(String message) => LogBoundX(this).zl.d(message);
+  void e(String message) => LogBoundX(this).zl.e(message);
 }
