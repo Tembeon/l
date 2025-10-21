@@ -6,6 +6,7 @@ library;
 import 'dart:async';
 
 import 'package:l/l.dart';
+import 'package:l/log_binding.dart';
 import 'package:l/src/environment_specific/log_delegate_print.dart'
     as log_delegate_stub;
 import 'package:l/src/environment_specific/log_delegate_vm.dart'
@@ -20,6 +21,7 @@ void main() {
   group('l.jsonSerialization', jsonSerialization);
   group('l.output', logOutput);
   group('l.tags', tags);
+  group('l.binding', binding);
 }
 
 void mainFunctional() {
@@ -557,4 +559,68 @@ void tags() {
     expect(messages.first.tags.toList(), equals(['inline']));
     expect(messages.last.tags.toList(), equals(['inline']));
   });
+}
+
+void binding() {
+  test('bindLog attaches tags to bound object logs', () async {
+    final messages = <LogMessage>[];
+    final sub = l.listen(messages.add);
+    addTearDown(sub.cancel);
+
+    final target =
+        bindLog(_BoundSample(), tags: {'Bound'}, tag: 'SampleInstance');
+    target.zl.v('message');
+
+    await Future<void>.delayed(Duration.zero);
+
+    expect(messages, hasLength(1));
+    expect(messages.first.tags.toList(), equals(['Bound', 'SampleInstance']));
+  });
+
+  test('bindLog merges with capture tags', () async {
+    final messages = <LogMessage>[];
+    final sub = l.listen(messages.add);
+    addTearDown(sub.cancel);
+
+    l.capture(
+      () {
+        final target =
+            bindLog(_BoundSample(), tags: {'Bound'}, tag: 'SampleInstance');
+        target.zl.e('error');
+      },
+      const LogOptions(tags: {'Scoped'}),
+    );
+
+    await Future<void>.delayed(Duration.zero);
+
+    expect(messages, hasLength(1));
+    expect(
+      messages.first.tags.toList(),
+      equals(['Scoped', 'Bound', 'SampleInstance']),
+    );
+  });
+
+  test('unbindLog detaches bound zone', () async {
+    final messages = <LogMessage>[];
+    final sub = l.listen(messages.add);
+    addTearDown(sub.cancel);
+
+    final target =
+        bindLog(_BoundSample(), tags: {'Bound'}, tag: 'SampleInstance');
+    target.zl.d('first');
+    unbindLog(target);
+    target.zl.d('second');
+
+    await Future<void>.delayed(Duration.zero);
+
+    expect(messages, hasLength(2));
+    expect(messages.first.tags.toList(), equals(['Bound', 'SampleInstance']));
+    expect(messages.last.tags.toList(), equals(['_BoundSample']));
+  });
+}
+
+final class _BoundSample {
+  void v(String message) => zl.v(message);
+  void d(String message) => zl.d(message);
+  void e(String message) => zl.e(message);
 }

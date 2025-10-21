@@ -108,7 +108,7 @@ abstract interface class L implements Stream<LogMessage> {
   /// ```dart
   ///   l.capture(
   ///     someFunction,
-  ///     logOptions: const LogOptions(
+  ///     const LogOptions(
   ///       handlePrint: false,
   ///       messageFormatting: _messageFormatting,
   ///       tags: {'ui', 'feature-x'},

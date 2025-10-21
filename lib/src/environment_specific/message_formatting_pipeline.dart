@@ -11,7 +11,7 @@ abstract base class MessageFormattingPipeline {
       final stackTrace = event.stackTrace;
       if (!identical(stackTrace, StackTrace.empty)) {
         final buffer = StringBuffer(messageString);
-        // if user give input which ends with new line, then no new lines required
+        // If user input ends with a newline, avoid adding an extra newline.
         if (messageString.isNotEmpty && !messageString.endsWith('\n')) {
           buffer.writeln();
         }

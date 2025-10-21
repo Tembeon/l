@@ -70,7 +70,8 @@ Set<String> normalizeLogTags(Iterable<String> tags) {
       : Set<String>.unmodifiable(normalized);
 }
 
-Map<Symbol, Object?>? _buildZoneValues(LogOptions? logOptions) {
+@internal
+Map<Symbol, Object?> buildZoneValues(LogOptions? logOptions) {
   final values = <Symbol, Object?>{};
   if (logOptions != null) values[_kOptionsKey] = logOptions;
   final normalizedTags = combineLogTags(logOptions?.tags);
@@ -78,7 +79,7 @@ Map<Symbol, Object?>? _buildZoneValues(LogOptions? logOptions) {
     values[_kTagsKey] = normalizedTags;
   }
   values[_kInlineTagsKey] = _InlineTagState.child();
-  return values.isEmpty ? null : values;
+  return values;
 }
 
 ZoneSpecification _buildZoneSpecification(
@@ -110,7 +111,7 @@ base mixin InnerZonedMixin on InnerLogger {
   R capture<R extends Object?>(R Function() body, [LogOptions? logOptions]) =>
       runZoned<R>(
         body,
-        zoneValues: _buildZoneValues(logOptions),
+        zoneValues: buildZoneValues(logOptions),
         zoneSpecification: _buildZoneSpecification(this, logOptions),
       );
 }
